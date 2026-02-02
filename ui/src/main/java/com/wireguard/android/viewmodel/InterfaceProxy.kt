@@ -1,6 +1,7 @@
 /*
  * Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
+ * Modified by fekoneko.
  */
 package com.wireguard.android.viewmodel
 
@@ -40,6 +41,13 @@ class InterfaceProxy : BaseObservable, Parcelable {
         }
 
     @get:Bindable
+    var wstunnelArguments: String = ""
+        set(value) {
+            field = value
+            notifyPropertyChanged(BR.wstunnelArguments)
+        }
+
+    @get:Bindable
     var listenPort: String = ""
         set(value) {
             field = value
@@ -74,6 +82,7 @@ class InterfaceProxy : BaseObservable, Parcelable {
         dnsServers = parcel.readString() ?: ""
         parcel.readStringList(excludedApplications)
         parcel.readStringList(includedApplications)
+        wstunnelArguments = parcel.readString() ?: ""
         listenPort = parcel.readString() ?: ""
         mtu = parcel.readString() ?: ""
         privateKey = parcel.readString() ?: ""
@@ -85,6 +94,7 @@ class InterfaceProxy : BaseObservable, Parcelable {
         dnsServers = Attribute.join(dnsServerStrings)
         excludedApplications.addAll(other.excludedApplications)
         includedApplications.addAll(other.includedApplications)
+        wstunnelArguments = other.wstunnelArguments.orElse("")
         listenPort = other.listenPort.map { it.toString() }.orElse("")
         mtu = other.mtu.map { it.toString() }.orElse("")
         val keyPair = other.keyPair
@@ -109,6 +119,7 @@ class InterfaceProxy : BaseObservable, Parcelable {
         if (dnsServers.isNotEmpty()) builder.parseDnsServers(dnsServers)
         if (excludedApplications.isNotEmpty()) builder.excludeApplications(excludedApplications)
         if (includedApplications.isNotEmpty()) builder.includeApplications(includedApplications)
+        if (wstunnelArguments.isNotEmpty()) builder.parseWstunnelArguments(wstunnelArguments)
         if (listenPort.isNotEmpty()) builder.parseListenPort(listenPort)
         if (mtu.isNotEmpty()) builder.parseMtu(mtu)
         if (privateKey.isNotEmpty()) builder.parsePrivateKey(privateKey)
@@ -120,6 +131,7 @@ class InterfaceProxy : BaseObservable, Parcelable {
         dest.writeString(dnsServers)
         dest.writeStringList(excludedApplications)
         dest.writeStringList(includedApplications)
+        dest.writeString(wstunnelArguments)
         dest.writeString(listenPort)
         dest.writeString(mtu)
         dest.writeString(privateKey)

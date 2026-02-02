@@ -1,6 +1,7 @@
 /*
  * Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
+ * Modified by fekoneko.
  */
 
 package com.wireguard.config;
@@ -43,6 +44,7 @@ public final class Interface {
     private final Set<String> dnsSearchDomains;
     private final Set<String> excludedApplications;
     private final Set<String> includedApplications;
+    private final Optional<String> wstunnelArguments;
     private final KeyPair keyPair;
     private final Optional<Integer> listenPort;
     private final Optional<Integer> mtu;
@@ -54,6 +56,7 @@ public final class Interface {
         dnsSearchDomains = Collections.unmodifiableSet(new LinkedHashSet<>(builder.dnsSearchDomains));
         excludedApplications = Collections.unmodifiableSet(new LinkedHashSet<>(builder.excludedApplications));
         includedApplications = Collections.unmodifiableSet(new LinkedHashSet<>(builder.includedApplications));
+        wstunnelArguments = builder.wstunnelArguments;
         keyPair = Objects.requireNonNull(builder.keyPair, "Interfaces must have a private key");
         listenPort = builder.listenPort;
         mtu = builder.mtu;
@@ -86,6 +89,9 @@ public final class Interface {
                 case "includedapplications":
                     builder.parseIncludedApplications(attribute.getValue());
                     break;
+                case "wstunnelarguments":
+                    builder.parseWstunnelArguments(attribute.getValue());
+                    break;
                 case "listenport":
                     builder.parseListenPort(attribute.getValue());
                     break;
@@ -113,6 +119,7 @@ public final class Interface {
                 && dnsSearchDomains.equals(other.dnsSearchDomains)
                 && excludedApplications.equals(other.excludedApplications)
                 && includedApplications.equals(other.includedApplications)
+                && wstunnelArguments.equals(other.wstunnelArguments)
                 && keyPair.equals(other.keyPair)
                 && listenPort.equals(other.listenPort)
                 && mtu.equals(other.mtu);
@@ -166,6 +173,15 @@ public final class Interface {
     public Set<String> getIncludedApplications() {
         // The collection is already immutable.
         return includedApplications;
+    }
+
+    /**
+     * Returns optional arguments string for the web socket tunnel.
+     *
+     * @return optional arguments string
+     */
+    public Optional<String> getWstunnelArguments() {
+        return wstunnelArguments;
     }
 
     /**
@@ -242,6 +258,7 @@ public final class Interface {
             sb.append("ExcludedApplications = ").append(Attribute.join(excludedApplications)).append('\n');
         if (!includedApplications.isEmpty())
             sb.append("IncludedApplications = ").append(Attribute.join(includedApplications)).append('\n');
+        wstunnelArguments.ifPresent(a -> sb.append("WSTunnelArguments = ").append(a).append('\n'));
         listenPort.ifPresent(lp -> sb.append("ListenPort = ").append(lp).append('\n'));
         mtu.ifPresent(m -> sb.append("MTU = ").append(m).append('\n'));
         sb.append("PrivateKey = ").append(keyPair.getPrivateKey().toBase64()).append('\n');
@@ -273,6 +290,8 @@ public final class Interface {
         private final Set<String> excludedApplications = new LinkedHashSet<>();
         // Defaults to an empty set.
         private final Set<String> includedApplications = new LinkedHashSet<>();
+        // Defaults to not present.
+        private Optional<String> wstunnelArguments = Optional.empty();
         // No default; must be provided before building.
         @Nullable private KeyPair keyPair;
         // Defaults to not present.
@@ -375,6 +394,10 @@ public final class Interface {
             return includeApplications(List.of(Attribute.split(apps)));
         }
 
+        public Builder parseWstunnelArguments(final CharSequence args) {
+            return setWstunnelArguments(args.toString());
+        }
+
         public Builder parseListenPort(final String listenPort) throws BadConfigException {
             try {
                 return setListenPort(Integer.parseInt(listenPort));
@@ -417,6 +440,11 @@ public final class Interface {
                 throw new BadConfigException(Section.INTERFACE, Location.LISTEN_PORT,
                         Reason.INVALID_VALUE, String.valueOf(mtu));
             this.mtu = mtu == 0 ? Optional.empty() : Optional.of(mtu);
+            return this;
+        }
+
+        public Builder setWstunnelArguments(final String args) {
+            this.wstunnelArguments = Optional.of(args);
             return this;
         }
     }

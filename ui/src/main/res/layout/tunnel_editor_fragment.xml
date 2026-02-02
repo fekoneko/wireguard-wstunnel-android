@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?><!--
   ~ Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
   ~ SPDX-License-Identifier: Apache-2.0
+  ~ Modified by fekoneko.
   -->
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -177,7 +178,8 @@
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintHorizontal_weight="0.3"
                             app:layout_constraintStart_toEndOf="@id/addresses_label_layout"
-                            app:layout_constraintTop_toBottomOf="@id/public_key_label_layout">
+                            app:layout_constraintTop_toTopOf="@id/addresses_label_layout"
+                            app:layout_constraintBottom_toBottomOf="@id/addresses_label_layout">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/listen_port_text"
@@ -204,7 +206,7 @@
                             app:layout_constraintHorizontal_chainStyle="spread"
                             app:layout_constraintHorizontal_weight="0.7"
                             app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toBottomOf="@+id/addresses_label_layout">
+                            app:layout_constraintTop_toBottomOf="@id/addresses_label_layout">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/dns_servers_text"
@@ -228,7 +230,8 @@
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintHorizontal_weight="0.3"
                             app:layout_constraintStart_toEndOf="@id/dns_servers_label_layout"
-                            app:layout_constraintTop_toBottomOf="@id/addresses_label_layout">
+                            app:layout_constraintTop_toTopOf="@id/dns_servers_label_layout"
+                            app:layout_constraintBottom_toBottomOf="@id/dns_servers_label_layout">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/mtu_text"
@@ -238,10 +241,32 @@
                                 android:imeOptions="actionDone"
                                 android:inputType="number"
                                 android:nextFocusUp="@id/listen_port_text"
-                                android:nextFocusDown="@id/set_excluded_applications"
-                                android:nextFocusForward="@id/set_excluded_applications"
+                                android:nextFocusDown="@id/wstunnel_arguments_label_layout"
+                                android:nextFocusForward="@id/wstunnel_arguments_label_layout"
                                 android:text="@={config.interface.mtu}"
                                 android:textAlignment="center" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/wstunnel_arguments_label_layout"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="4dp"
+                            android:hint="@string/wstunnel_arguments"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@id/dns_servers_label_layout">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/wstunnel_arguments_text"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:imeOptions="actionNext"
+                                android:inputType="text"
+                                android:nextFocusUp="@id/mtu_text"
+                                android:nextFocusDown="@id/set_excluded_applications"
+                                android:nextFocusForward="@id/set_excluded_applications"
+                                android:text="@={config.interface.wstunnelArguments}" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.button.MaterialButton
@@ -250,7 +275,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_margin="4dp"
-                            android:nextFocusUp="@id/dns_servers_text"
+                            android:nextFocusUp="@id/wstunnel_arguments_text"
                             android:nextFocusDown="@id/peers_layout"
                             android:nextFocusForward="@id/peers_layout"
                             android:onClick="@{fragment::onRequestSetExcludedIncludedApplications}"
@@ -259,7 +284,7 @@
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toBottomOf="@id/mtu_label_layout"
+                            app:layout_constraintTop_toBottomOf="@id/wstunnel_arguments_label_layout"
                             app:rippleColor="?attr/colorSecondary"
                             tools:text="4 excluded applications" />
                     </androidx.constraintlayout.widget.ConstraintLayout>

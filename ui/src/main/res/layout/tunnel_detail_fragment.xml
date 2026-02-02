@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?><!--
   ~ Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
   ~ SPDX-License-Identifier: Apache-2.0
+  ~ Modified by fekoneko.
   -->
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -259,7 +260,8 @@
                         android:contentDescription="@string/mtu"
                         android:nextFocusLeft="@id/listen_port_text"
                         android:nextFocusUp="@id/dns_servers_text"
-                        android:nextFocusForward="@id/applications_text"
+                        android:nextFocusDown="@id/wstunnel_arguments_text"
+                        android:nextFocusForward="@id/wstunnel_arguments_text"
                         android:onClick="@{ClipboardUtils::copyTextView}"
                         android:text="@{config.interface.mtu}"
                         android:textAppearance="?attr/textAppearanceBodyLarge"
@@ -279,6 +281,31 @@
                         app:constraint_referenced_ids="listen_port_text,mtu_text" />
 
                     <TextView
+                        android:id="@+id/wstunnel_arguments_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:labelFor="@+id/wstunnel_arguments_text"
+                        android:text="@string/wstunnel_arguments"
+                        android:visibility="@{config.interface.wstunnelArguments.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE}"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/listen_port_mtu_barrier" />
+
+                    <TextView
+                        android:id="@+id/wstunnel_arguments_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/wstunnel_arguments"
+                        android:nextFocusUp="@id/mtu_text"
+                        android:nextFocusDown="@id/applications_text"
+                        android:nextFocusForward="@id/applications_text"
+                        android:text="@{config.interface.wstunnelArguments}"
+                        android:textAppearance="?attr/textAppearanceBodyLarge"
+                        android:visibility="@{config.interface.wstunnelArguments.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE}"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/wstunnel_arguments_label" />
+
+                    <TextView
                         android:id="@+id/applications_label"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -287,14 +314,14 @@
                         android:text="@string/applications"
                         android:visibility="@{config.interface.includedApplications.isEmpty() &amp;&amp; config.interface.excludedApplications.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE}"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@+id/listen_port_mtu_barrier" />
+                        app:layout_constraintTop_toBottomOf="@id/wstunnel_arguments_text" />
 
                     <TextView
                         android:id="@+id/applications_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:contentDescription="@string/applications"
-                        android:nextFocusUp="@id/mtu_text"
+                        android:nextFocusUp="@id/wstunnel_arguments_text"
                         android:nextFocusDown="@id/peers_layout"
                         android:nextFocusForward="@id/peers_layout"
                         android:onClick="@{ClipboardUtils::copyTextView}"
