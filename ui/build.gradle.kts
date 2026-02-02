@@ -20,7 +20,7 @@ android {
     }
     namespace = pkg
     defaultConfig {
-        applicationId = pkg
+        applicationId = "com.fekoneko.wireguard_wstunnel.android"
         minSdk = 24
         targetSdk = 36
         versionCode = providers.gradleProperty("wireguardVersionCode").get().toInt()
