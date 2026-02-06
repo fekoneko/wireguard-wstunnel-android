@@ -89,7 +89,7 @@ public final class Interface {
                 case "includedapplications":
                     builder.parseIncludedApplications(attribute.getValue());
                     break;
-                case "wsTunnelarguments":
+                case "wstunnelarguments":
                     builder.parseWsTunnelArguments(attribute.getValue());
                     break;
                 case "listenport":

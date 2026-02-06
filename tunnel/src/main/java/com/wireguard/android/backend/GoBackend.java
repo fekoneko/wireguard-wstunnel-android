@@ -6,8 +6,6 @@
 
 package com.wireguard.android.backend;
 
-import java.io.File;
-
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
