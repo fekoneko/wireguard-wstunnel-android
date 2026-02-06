@@ -32,7 +32,17 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
     buildTypes {
+        all {
+            externalNativeBuild {
+                // TODO: libwstunnel.so
+            }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

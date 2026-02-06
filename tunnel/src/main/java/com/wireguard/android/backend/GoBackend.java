@@ -1,9 +1,12 @@
 /*
  * Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
+ * Modified by Fekoneko.
  */
 
 package com.wireguard.android.backend;
+
+import java.io.File;
 
 import android.content.Context;
 import android.content.Intent;
@@ -23,8 +26,12 @@ import com.wireguard.crypto.Key;
 import com.wireguard.crypto.KeyFormatException;
 import com.wireguard.util.NonNullForAll;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -47,6 +54,7 @@ public final class GoBackend implements Backend {
     private final Context context;
     @Nullable private Config currentConfig;
     @Nullable private Tunnel currentTunnel;
+    private final Map<Tunnel, Process> runningWsTunnels = new HashMap<>();
     private int currentTunnelHandle = -1;
 
     /**
@@ -244,111 +252,145 @@ public final class GoBackend implements Backend {
             throws Exception {
         Log.i(TAG, "Bringing tunnel " + tunnel.getName() + ' ' + state);
 
-        if (state == State.UP) {
-            if (config == null)
-                throw new BackendException(Reason.TUNNEL_MISSING_CONFIG);
-
-            if (VpnService.prepare(context) != null)
-                throw new BackendException(Reason.VPN_NOT_AUTHORIZED);
-
-            final VpnService service;
-            if (!vpnService.isDone()) {
-                Log.d(TAG, "Requesting to start VpnService");
-                context.startService(new Intent(context, VpnService.class));
-            }
-
-            try {
-                service = vpnService.get(2, TimeUnit.SECONDS);
-            } catch (final TimeoutException e) {
-                final Exception be = new BackendException(Reason.UNABLE_TO_START_VPN);
-                be.initCause(e);
-                throw be;
-            }
-            service.setOwner(this);
-
-            if (currentTunnelHandle != -1) {
-                Log.w(TAG, "Tunnel already up");
-                return;
-            }
-
-
-            dnsRetry: for (int i = 0; i < DNS_RESOLUTION_RETRIES; ++i) {
-                // Pre-resolve IPs so they're cached when building the userspace string
-                for (final Peer peer : config.getPeers()) {
-                    final InetEndpoint ep = peer.getEndpoint().orElse(null);
-                    if (ep == null)
-                        continue;
-                    if (ep.getResolved().orElse(null) == null) {
-                        if (i < DNS_RESOLUTION_RETRIES - 1) {
-                            Log.w(TAG, "DNS host \"" + ep.getHost() + "\" failed to resolve; trying again");
-                            Thread.sleep(1000);
-                            continue dnsRetry;
-                        } else
-                            throw new BackendException(Reason.DNS_RESOLUTION_FAILURE, ep.getHost());
+        // Setting up / destroying wstunnel
+        try {
+            if (config == null) {
+                for (final Process process : runningWsTunnels.values()) {
+                    process.destroy();
+                }
+            } else {
+                Optional<String> wsTunnelArguments = config.getInterface().getWsTunnelArguments();
+                if (state == State.UP && wsTunnelArguments.isPresent()) {
+                    Process wsTunnelProcess = runningWsTunnels.get(tunnel);
+                    if (wsTunnelProcess == null) {
+                        String appDir = context.getApplicationInfo().nativeLibraryDir;
+                        Process process = Runtime.getRuntime().exec(appDir + "/libwstunnel.so " + wsTunnelArguments.get());
+                        runningWsTunnels.put(tunnel, process);
+                    } else {
+                        wsTunnelProcess.destroy();
+                        runningWsTunnels.remove(tunnel);
                     }
                 }
-                break;
             }
+        } catch (final IOException e) {
+            throw new BackendException(Reason.UNABLE_TO_START_WS_TUNNEL, e.getMessage());
+        }
 
-            // Build config
-            final String goConfig = config.toWgUserspaceString();
+        if (state == State.UP) {
+            try {
+                if (config == null)
+                    throw new BackendException(Reason.TUNNEL_MISSING_CONFIG);
 
-            // Create the vpn tunnel with android API
-            final VpnService.Builder builder = service.getBuilder();
-            builder.setSession(tunnel.getName());
+                if (VpnService.prepare(context) != null)
+                    throw new BackendException(Reason.VPN_NOT_AUTHORIZED);
 
-            for (final String excludedApplication : config.getInterface().getExcludedApplications())
-                builder.addDisallowedApplication(excludedApplication);
-
-            for (final String includedApplication : config.getInterface().getIncludedApplications())
-                builder.addAllowedApplication(includedApplication);
-
-            for (final InetNetwork addr : config.getInterface().getAddresses())
-                builder.addAddress(addr.getAddress(), addr.getMask());
-
-            for (final InetAddress addr : config.getInterface().getDnsServers())
-                builder.addDnsServer(addr.getHostAddress());
-
-            for (final String dnsSearchDomain : config.getInterface().getDnsSearchDomains())
-                builder.addSearchDomain(dnsSearchDomain);
-
-            boolean sawDefaultRoute = false;
-            for (final Peer peer : config.getPeers()) {
-                for (final InetNetwork addr : peer.getAllowedIps()) {
-                    if (addr.getMask() == 0)
-                        sawDefaultRoute = true;
-                    builder.addRoute(addr.getAddress(), addr.getMask());
+                final VpnService service;
+                if (!vpnService.isDone()) {
+                    Log.d(TAG, "Requesting to start VpnService");
+                    context.startService(new Intent(context, VpnService.class));
                 }
+
+                try {
+                    service = vpnService.get(2, TimeUnit.SECONDS);
+                } catch (final TimeoutException e) {
+                    final Exception be = new BackendException(Reason.UNABLE_TO_START_VPN);
+                    be.initCause(e);
+                    throw be;
+                }
+                service.setOwner(this);
+
+                if (currentTunnelHandle != -1) {
+                    Log.w(TAG, "Tunnel already up");
+                    return;
+                }
+
+
+                dnsRetry: for (int i = 0; i < DNS_RESOLUTION_RETRIES; ++i) {
+                    // Pre-resolve IPs so they're cached when building the userspace string
+                    for (final Peer peer : config.getPeers()) {
+                        final InetEndpoint ep = peer.getEndpoint().orElse(null);
+                        if (ep == null)
+                            continue;
+                        if (ep.getResolved().orElse(null) == null) {
+                            if (i < DNS_RESOLUTION_RETRIES - 1) {
+                                Log.w(TAG, "DNS host \"" + ep.getHost() + "\" failed to resolve; trying again");
+                                Thread.sleep(1000);
+                                continue dnsRetry;
+                            } else
+                                throw new BackendException(Reason.DNS_RESOLUTION_FAILURE, ep.getHost());
+                        }
+                    }
+                    break;
+                }
+
+                // Build config
+                final String goConfig = config.toWgUserspaceString();
+
+                // Create the vpn tunnel with android API
+                final VpnService.Builder builder = service.getBuilder();
+                builder.setSession(tunnel.getName());
+
+                for (final String excludedApplication : config.getInterface().getExcludedApplications())
+                    builder.addDisallowedApplication(excludedApplication);
+
+                for (final String includedApplication : config.getInterface().getIncludedApplications())
+                    builder.addAllowedApplication(includedApplication);
+
+                for (final InetNetwork addr : config.getInterface().getAddresses())
+                    builder.addAddress(addr.getAddress(), addr.getMask());
+
+                for (final InetAddress addr : config.getInterface().getDnsServers())
+                    builder.addDnsServer(addr.getHostAddress());
+
+                for (final String dnsSearchDomain : config.getInterface().getDnsSearchDomains())
+                    builder.addSearchDomain(dnsSearchDomain);
+
+                boolean sawDefaultRoute = false;
+                for (final Peer peer : config.getPeers()) {
+                    for (final InetNetwork addr : peer.getAllowedIps()) {
+                        if (addr.getMask() == 0)
+                            sawDefaultRoute = true;
+                        builder.addRoute(addr.getAddress(), addr.getMask());
+                    }
+                }
+
+                // "Kill-switch" semantics
+                if (!(sawDefaultRoute && config.getPeers().size() == 1)) {
+                    builder.allowFamily(OsConstants.AF_INET);
+                    builder.allowFamily(OsConstants.AF_INET6);
+                }
+
+                builder.setMtu(config.getInterface().getMtu().orElse(1280));
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+                    builder.setMetered(false);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                    service.setUnderlyingNetworks(null);
+
+                builder.setBlocking(true);
+                try (final ParcelFileDescriptor tun = builder.establish()) {
+                    if (tun == null)
+                        throw new BackendException(Reason.TUN_CREATION_ERROR);
+                    Log.d(TAG, "Go backend " + wgVersion());
+                    currentTunnelHandle = wgTurnOn(tunnel.getName(), tun.detachFd(), goConfig);
+                }
+                if (currentTunnelHandle < 0)
+                    throw new BackendException(Reason.GO_ACTIVATION_ERROR_CODE, currentTunnelHandle);
+
+                currentTunnel = tunnel;
+                currentConfig = config;
+
+                service.protect(wgGetSocketV4(currentTunnelHandle));
+                service.protect(wgGetSocketV6(currentTunnelHandle));
+            } catch (final Exception e) {
+                // destroy wstunnel if setting up failed
+                Process wsTunnelProcess = runningWsTunnels.get(tunnel);
+                if (wsTunnelProcess != null) {
+                    wsTunnelProcess.destroy();
+                    runningWsTunnels.remove(tunnel);
+                }
+                throw e;
             }
-
-            // "Kill-switch" semantics
-            if (!(sawDefaultRoute && config.getPeers().size() == 1)) {
-                builder.allowFamily(OsConstants.AF_INET);
-                builder.allowFamily(OsConstants.AF_INET6);
-            }
-
-            builder.setMtu(config.getInterface().getMtu().orElse(1280));
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-                builder.setMetered(false);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                service.setUnderlyingNetworks(null);
-
-            builder.setBlocking(true);
-            try (final ParcelFileDescriptor tun = builder.establish()) {
-                if (tun == null)
-                    throw new BackendException(Reason.TUN_CREATION_ERROR);
-                Log.d(TAG, "Go backend " + wgVersion());
-                currentTunnelHandle = wgTurnOn(tunnel.getName(), tun.detachFd(), goConfig);
-            }
-            if (currentTunnelHandle < 0)
-                throw new BackendException(Reason.GO_ACTIVATION_ERROR_CODE, currentTunnelHandle);
-
-            currentTunnel = tunnel;
-            currentConfig = config;
-
-            service.protect(wgGetSocketV4(currentTunnelHandle));
-            service.protect(wgGetSocketV6(currentTunnelHandle));
         } else {
             if (currentTunnelHandle == -1) {
                 Log.w(TAG, "Tunnel already down");

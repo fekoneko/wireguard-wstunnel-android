@@ -1,6 +1,7 @@
 /*
  * Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
+ * Modified by Fekoneko.
  */
 
 package com.wireguard.android.backend;
@@ -19,6 +20,7 @@ import com.wireguard.util.NonNullForAll;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import androidx.annotation.Nullable;
@@ -43,13 +46,16 @@ import androidx.annotation.Nullable;
 public final class WgQuickBackend implements Backend {
     private static final String TAG = "WireGuard/WgQuickBackend";
     private final File localTemporaryDir;
+    private final Context context;
     private final RootShell rootShell;
     private final Map<Tunnel, Config> runningConfigs = new HashMap<>();
+    private final Map<Tunnel, Process> runningWsTunnels = new HashMap<>();
     private final ToolsInstaller toolsInstaller;
     private boolean multipleTunnels;
 
     public WgQuickBackend(final Context context, final RootShell rootShell, final ToolsInstaller toolsInstaller) {
         localTemporaryDir = new File(context.getCacheDir(), "tmp");
+        this.context = context;
         this.rootShell = rootShell;
         this.toolsInstaller = toolsInstaller;
     }
@@ -182,6 +188,24 @@ public final class WgQuickBackend implements Backend {
 
         Objects.requireNonNull(config, "Trying to set state up with a null config");
 
+        // Setting up / destroying wstunnel
+        try {
+            Optional<String> wsTunnelArguments = config.getInterface().getWsTunnelArguments();
+            if (state == State.UP && wsTunnelArguments.isPresent()) {
+                Process wsTunnelProcess = runningWsTunnels.get(tunnel);
+                if (wsTunnelProcess == null) {
+                    String appDir = context.getApplicationInfo().nativeLibraryDir;
+                    Process process = Runtime.getRuntime().exec(appDir + "/libwstunnel.so " + wsTunnelArguments.get());
+                    runningWsTunnels.put(tunnel, process);
+                } else {
+                    wsTunnelProcess.destroy();
+                    runningWsTunnels.remove(tunnel);
+                }
+            }
+        } catch (final IOException e) {
+            throw new BackendException(Reason.UNABLE_TO_START_WS_TUNNEL, e.getMessage());
+        }
+
         final File tempFile = new File(localTemporaryDir, tunnel.getName() + ".conf");
         try (final FileOutputStream stream = new FileOutputStream(tempFile, false)) {
             stream.write(config.toWgQuickString().getBytes(StandardCharsets.UTF_8));
@@ -193,8 +217,17 @@ public final class WgQuickBackend implements Backend {
         final int result = rootShell.run(null, command);
         // noinspection ResultOfMethodCallIgnored
         tempFile.delete();
-        if (result != 0)
+        if (result != 0) {
+            // destroy wstunnel if setting up failed
+            if (state == State.UP) {
+                Process wsTunnelProcess = runningWsTunnels.get(tunnel);
+                if (wsTunnelProcess != null) {
+                    wsTunnelProcess.destroy();
+                    runningWsTunnels.remove(tunnel);
+                }
+            }
             throw new BackendException(Reason.WG_QUICK_CONFIG_ERROR_CODE, result);
+        }
 
         if (state == State.UP)
             runningConfigs.put(tunnel, config);

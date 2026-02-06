@@ -266,7 +266,7 @@
                                 android:nextFocusUp="@id/mtu_text"
                                 android:nextFocusDown="@id/set_excluded_applications"
                                 android:nextFocusForward="@id/set_excluded_applications"
-                                android:text="@={config.interface.wstunnelArguments}" />
+                                android:text="@={config.interface.wsTunnelArguments}" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <com.google.android.material.button.MaterialButton

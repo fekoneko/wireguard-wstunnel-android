@@ -1,6 +1,7 @@
 /*
  * Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
+ * Modified by Fekoneko.
  */
 
 package com.wireguard.android.backend;
@@ -49,6 +50,7 @@ public final class BackendException extends Exception {
      * Enum class containing all known reasons for why a {@link BackendException} might be thrown.
      */
     public enum Reason {
+        UNABLE_TO_START_WS_TUNNEL,
         UNKNOWN_KERNEL_MODULE_NAME,
         WG_QUICK_CONFIG_ERROR_CODE,
         TUNNEL_MISSING_CONFIG,

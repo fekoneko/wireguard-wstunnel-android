@@ -6,7 +6,6 @@
 /.vscode/
 /captures/
 /local.properties
-/build-and-install.sh
 .DS_Store
 .cxx/
 Thumbs.db

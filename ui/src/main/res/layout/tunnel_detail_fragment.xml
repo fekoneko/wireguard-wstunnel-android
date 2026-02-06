@@ -287,7 +287,7 @@
                         android:layout_marginTop="8dp"
                         android:labelFor="@+id/wstunnel_arguments_text"
                         android:text="@string/wstunnel_arguments"
-                        android:visibility="@{config.interface.wstunnelArguments.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE}"
+                        android:visibility="@{config.interface.wsTunnelArguments.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE}"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@id/listen_port_mtu_barrier" />
 
@@ -299,9 +299,9 @@
                         android:nextFocusUp="@id/mtu_text"
                         android:nextFocusDown="@id/applications_text"
                         android:nextFocusForward="@id/applications_text"
-                        android:text="@{config.interface.wstunnelArguments}"
+                        android:text="@{config.interface.wsTunnelArguments}"
                         android:textAppearance="?attr/textAppearanceBodyLarge"
-                        android:visibility="@{config.interface.wstunnelArguments.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE}"
+                        android:visibility="@{config.interface.wsTunnelArguments.isEmpty() ? android.view.View.GONE : android.view.View.VISIBLE}"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toBottomOf="@+id/wstunnel_arguments_label" />
 

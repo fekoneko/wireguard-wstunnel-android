@@ -1,6 +1,7 @@
 /*
  * Copyright © 2017-2025 WireGuard LLC. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
+ * Modified by Fekoneko.
  */
 package com.wireguard.android.util
 
@@ -32,6 +33,7 @@ object ErrorMessages {
         BadConfigException.Reason.UNKNOWN_SECTION to R.string.bad_config_reason_unknown_section
     )
     private val BE_REASON_MAP = mapOf(
+        BackendException.Reason.UNABLE_TO_START_WS_TUNNEL to R.string.wstunnel_start_error,
         BackendException.Reason.UNKNOWN_KERNEL_MODULE_NAME to R.string.module_version_error,
         BackendException.Reason.WG_QUICK_CONFIG_ERROR_CODE to R.string.tunnel_config_error,
         BackendException.Reason.TUNNEL_MISSING_CONFIG to R.string.no_config_error,

@@ -275,6 +275,7 @@
     <string name="vpn_not_authorized_error">Сервис VPN не авторизован пользователем</string>
     <string name="vpn_start_error">Не удалось запустить службу Android VPN</string>
     <string name="wstunnel_arguments">Аргументы WSTunnel</string>
+    <string name="wstunnel_start_error">Не удалось запустить WSTunnel</string>
     <string name="zip_export_error">Не удалось экспортировать туннели: %s</string>
     <string name="zip_export_success">Сохранено в “%s”</string>
     <string name="zip_export_summary">Zip-файл будет сохранен в папке загрузок</string>
