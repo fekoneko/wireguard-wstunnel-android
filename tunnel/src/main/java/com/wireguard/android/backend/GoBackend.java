@@ -6,6 +6,10 @@
 
 package com.wireguard.android.backend;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
@@ -253,6 +257,13 @@ public final class GoBackend implements Backend {
         // Setting up / destroying wstunnel
         try {
             if (config == null) {
+                // FIXME: remove
+                var logFile = new File(context.getCacheDir(), "wstunnel.log");
+                var reader = new BufferedReader(new FileReader(logFile));
+                while (reader.ready()) {
+                    Log.d(TAG, "wstunnel: " + reader.readLine());
+                }
+
                 for (final Process process : runningWsTunnels.values()) {
                     process.destroy();
                 }
@@ -260,9 +271,18 @@ public final class GoBackend implements Backend {
                 Optional<String> wsTunnelArguments = config.getInterface().getWsTunnelArguments();
                 if (state == State.UP && wsTunnelArguments.isPresent()) {
                     Process wsTunnelProcess = runningWsTunnels.get(tunnel);
+
                     if (wsTunnelProcess == null) {
                         String appDir = context.getApplicationInfo().nativeLibraryDir;
-                        Process process = Runtime.getRuntime().exec(appDir + "/libwstunnel.so " + wsTunnelArguments.get());
+                        String[] command = new String[]{
+                            "/system/bin/sh",
+                            "-c",
+                            "cd " + appDir + " && ./libwstunnel.so " + wsTunnelArguments.get()
+                        };
+                        Process process = new ProcessBuilder(command)
+                            .redirectOutput(new File(context.getCacheDir(), "wstunnel.log"))
+                            .redirectError(new File(context.getCacheDir(), "wstunnel.log"))
+                            .start(); // FIXME: ./libwstunnel.so: not executable: 64-bit ELF file
                         runningWsTunnels.put(tunnel, process);
                     } else {
                         wsTunnelProcess.destroy();

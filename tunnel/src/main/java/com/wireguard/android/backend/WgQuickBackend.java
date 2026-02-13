@@ -195,7 +195,15 @@ public final class WgQuickBackend implements Backend {
                 Process wsTunnelProcess = runningWsTunnels.get(tunnel);
                 if (wsTunnelProcess == null) {
                     String appDir = context.getApplicationInfo().nativeLibraryDir;
-                    Process process = Runtime.getRuntime().exec(appDir + "/libwstunnel.so " + wsTunnelArguments.get());
+                    String[] command = new String[]{
+                        "/system/bin/sh",
+                        "-c",
+                        "cd " + appDir + " && ./libwstunnel.so " + wsTunnelArguments.get()
+                    };
+                    Process process = new ProcessBuilder(command)
+                            .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                            .redirectError(ProcessBuilder.Redirect.INHERIT)
+                            .start();
                     runningWsTunnels.put(tunnel, process);
                 } else {
                     wsTunnelProcess.destroy();

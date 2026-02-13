@@ -2,6 +2,14 @@
 
 A soft fork of [`wireguard-android`](https://git.zx2c4.com/wireguard-android).
 
+> [!WARNING]
+> The actual WSTunnel functionality doesn't work right now because of Android constraints.
+> I haven't been able to figure out how to allow the app to run `wstunnel` binary in production.
+>
+> Probably won't fix it now because I don't even need the app anymore :)
+>
+> This sucked
+
 This is an Android GUI for [WireGuard](https://www.wireguard.com/). It [opportunistically uses the kernel implementation](https://git.zx2c4.com/android_kernel_wireguard/about/), and falls back to using the non-root [userspace implementation](https://git.zx2c4.com/wireguard-go/about/).
 
 This fork enables tunneling traffic through [`wstunnel`](https://github.com/erebe/wstunnel) to avoid some regional blockings.

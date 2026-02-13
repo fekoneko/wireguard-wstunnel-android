@@ -38,11 +38,6 @@ android {
         }
     }
     buildTypes {
-        all {
-            externalNativeBuild {
-                // TODO: libwstunnel.so
-            }
-        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
